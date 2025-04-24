@@ -57,16 +57,17 @@ const Squares = ({
         }
       }
 
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2,
-        canvas.height / 2,
-        0,
-        canvas.width / 2,
-        canvas.height / 2,
-        Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2
+      // Create a steeper linear gradient (bottom to top)
+      const gradient = ctx.createLinearGradient(
+        0,                  // x0 (start x)
+        canvas.height,      // y0 (start y - bottom of canvas)
+        0,                  // x1 (end x)
+        0                   // y1 (end y - top of canvas)
       );
-      gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
-      gradient.addColorStop(1, "#060606");
+      gradient.addColorStop(0, "rgba(0, 0, 0, 0)");      // Bottom - transparent (shows squares)
+      gradient.addColorStop(0.2, "rgba(0, 0, 0, 0.5)");  // Add intermediate stop at 40% to create steeper transition
+      gradient.addColorStop(0.7, "#060606");             // Transition to black much sooner (at 70% from bottom)
+      gradient.addColorStop(1, "#060606");               // Top - full black
 
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);

@@ -135,14 +135,14 @@ function Band({ maxSpeed = 50, minSpeed = 0 }) {
               <meshPhysicalMaterial 
                 map={materials.base.map} // Base color map
                 displacementMap={materials.base.displacementMap} // Displacement map
-                displacementScale={0.1} // Adjust the scale of displacement
+                displacementScale={0.3} // Adjust the scale of displacement
                 metalnessMap={materials.base.metallicMap} // Metallic map
                 normalMap={materials.base.normalMap} // Normal map
                 roughnessMap={materials.base.roughnessMap} // Roughness map
                 clearcoat={1} // Add a glossy clear coat
-                clearcoatRoughness={0.15} // Smooth clear coat
+                clearcoatRoughness={0.3} // Smooth clear coat
                 metalness={1} // Fully metallic
-                roughness={0.5} // Adjust roughness
+                roughness={1} // Adjust roughness
               />
             </mesh>
             <mesh geometry={nodes.clip.geometry} material={materials.metal} />
@@ -154,7 +154,7 @@ function Band({ maxSpeed = 50, minSpeed = 0 }) {
                 clearcoat={1} // Add a glossy clear coat
                 clearcoatRoughness={0} // Smooth clear coat
                 envMapIntensity={5} // Boost reflection intensity
-                color="white" // Optional: Set a base color
+                color="#181718" // Optional: Set a base color
               />
             </mesh>
           </group>
