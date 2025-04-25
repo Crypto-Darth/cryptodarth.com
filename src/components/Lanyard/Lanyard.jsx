@@ -1,8 +1,8 @@
 /* eslint-disable react/no-unknown-property */
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import { Canvas, extend, useFrame } from '@react-three/fiber';
-import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
+import { useEffect, useRef, useState, Suspense } from 'react';
+import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
+import { useGLTF, useTexture, Environment, useProgress, Html } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -15,37 +15,130 @@ import * as THREE from 'three';
 
 extend({ MeshLineGeometry, MeshLineMaterial });
 
+// Loader component to display loading progress
+function LoadingScreen() {
+  const { progress, loaded, total } = useProgress();
+  
+  return (
+    <Html center className="w-full h-full flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center">
+        <div className="w-64 h-1 bg-gray-900 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-300 shadow-[0px_0px_18px_rgba(148,194,255,0.7)]"
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+        <p className="font-archimoto text-sm text-white mt-3">
+          {Math.round(progress)}%
+        </p>
+        <p className="font-archimoto text-xs text-gray-500 mt-1">
+          {loaded}/{total} ASSETS
+        </p>
+      </div>
+    </Html>
+  );
+}
+
+// Scene component that contains everything except the Canvas
+function Scene({ gravity, transparent }) {
+  const { gl } = useThree();
+  
+  // Setup WebGL context recovery
+  useEffect(() => {
+    const handleContextLost = (event) => {
+      event.preventDefault();
+      console.warn("WebGL context lost. Attempting to recover...");
+      
+      // Force a timeout to allow context to reset
+      setTimeout(() => {
+        if (gl.getContext()) {
+          console.log("WebGL context recovered successfully");
+        }
+      }, 1000);
+    };
+    
+    const canvas = gl.domElement;
+    canvas.addEventListener('webglcontextlost', handleContextLost, false);
+    
+    return () => {
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
+      // Properly dispose of resources when unmounting
+      gl.dispose();
+    };
+  }, [gl]);
+
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+      <Physics 
+        gravity={gravity} 
+        timeStep={1 / 60}
+        allowSleep={true}
+      >
+        <Suspense fallback={<LoadingScreen />}>
+          <Band />
+        </Suspense>
+      </Physics>
+      {/* Use the HDR file as the environment map */}
+      <Environment
+        files={mainHDR}
+        background={false}
+        rotation={[0,0,0]}
+      />
+      {/* Add Bloom Effect with optimized settings */}
+      <EffectComposer multisampling={0}>
+        <Bloom
+          intensity={0.7}
+          luminanceThreshold={0.4}
+          luminanceSmoothing={0.9}
+          height={300} // Reduced for better performance
+        />
+      </EffectComposer>
+    </>
+  );
+}
+
 export default function Lanyard({ position = [0, 0, 30], gravity = [0, -40, 0], fov = 20, transparent = true }) {
+  const [canvasReady, setCanvasReady] = useState(false);
+  
+  // Delay canvas rendering to ensure DOM is ready
+  useEffect(() => {
+    const timer = setTimeout(() => setCanvasReady(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  if (!canvasReady) {
+    return (
+      <div className="relative z-0 w-full h-screen flex justify-center items-center">
+        <div className="loading">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative z-0 w-full h-screen flex justify-center items-center transform scale-100 origin-center">
       <Canvas
-        camera={{ position: position, fov: fov }}
-        gl={{ alpha: transparent }}
-        onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
+        camera={{ position, fov }}
+        gl={{ 
+          alpha: transparent,
+          antialias: false, // Disable antialiasing for better performance
+          powerPreference: "high-performance",
+          preserveDrawingBuffer: false,
+        }}
+        dpr={[0.8, 1.5]} // Limit pixel ratio to improve performance
+        onCreated={({ gl }) => {
+          gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1);
+        }}
+        frameloop="demand" // Only render when needed
       >
-        <ambientLight intensity={0.5} />
-        <Physics gravity={gravity} timeStep={1 / 60}>
-          <Band />
-        </Physics>
-        {/* Use the HDR file as the environment map */}
-        <Environment
-          files={mainHDR} // Path to the HDRI file
-          background={false} // Hide HDRI as the background
-          rotation={[0,0,0]} // Rotate the HDRI (Y-axis rotation in radians)
-        />
-        {/* Add Bloom Effect */}
-        <EffectComposer>
-          <Bloom
-            intensity={0.7} // Bloom intensity
-            luminanceThreshold={0.4} // Minimum luminance for bloom
-            luminanceSmoothing={0.9} // Smoothing of the bloom effect
-            height={500} // Resolution of the bloom effect
-          />
-        </EffectComposer>
+        <Suspense fallback={<LoadingScreen />}>
+          <Scene gravity={gravity} transparent={transparent} />
+        </Suspense>
       </Canvas>
     </div>
   );
 }
+
 function Band({ maxSpeed = 50, minSpeed = 0 }) {
   const band = useRef(), fixed = useRef(), j1 = useRef(), j2 = useRef(), j3 = useRef(), card = useRef();
   const vec = new THREE.Vector3(), ang = new THREE.Vector3(), rot = new THREE.Vector3(), dir = new THREE.Vector3();
