@@ -9,7 +9,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
 import cardGLB from "./card.glb";
 import lanyard from "./lanyard.png";
-import mainHDR from './main.hdr';
+import mainHDR from './t2.hdr';
 
 import * as THREE from 'three';
 
