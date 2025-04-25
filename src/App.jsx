@@ -5,6 +5,8 @@ import Lanyard from './components/Lanyard/Lanyard';
 import logo from '/crypto2.png'
 // Import GitHub logo
 import githubLogo from '/github.png' // Make sure to add this file to your public folder
+import { Analytics } from "@vercel/analytics/react"
+
 
 function App() {
   useEffect(() => {
@@ -18,6 +20,7 @@ function App() {
   
   return (
     <>
+    <Analytics />
     <div className='h-screen w-screen fixed inset-0 overflow-hidden'>
       {/* Background layer with lower z-index */}
       <div className="absolute inset-0 z-0">
